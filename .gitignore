@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 
 data/*
+dist_mat_triu.dat
