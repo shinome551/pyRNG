@@ -9,7 +9,7 @@ from libcpp.vector cimport vector
 from libcpp.queue cimport queue
 from libcpp.pair cimport pair
 from libc.float cimport FLT_MAX
-
+from cython.parallel import prange
 
 ctypedef unsigned int TY
 ctypedef np.float32_t DTYPE_t
@@ -22,22 +22,21 @@ cdef TY getIndexfromTriuVec(TY i, TY j, TY n, TY cumsum_n):
         return cumsum_n - (n - j) * (n - j - 1) / 2 + i - j - 1
 
 
-cpdef vector[float] calcDistanceTriuMatrix(vector[vector[float]] data):
+cpdef calcDistanceTriuMatrix(vector[vector[float]] data, DTYPE_t[:] dist_mat_triu):
     cdef:
         TY n = data.size()
         TY d = data[0].size()
-        vector[float] dist_mat_triu
-        TY i, j, k
+        TY i, j, k, cnt
         float sum
-        
+
+    idx = 0        
     for i in range(n):
         for j in range(i+1, n):
             sum = 0
-            for k in range(d):
+            for k in prange(d, nogil=True):
                 sum += (data[i][k] - data[j][k]) ** 2
-            dist_mat_triu.push_back(sum ** 0.5)
-
-    return dist_mat_triu
+            dist_mat_triu[idx] = sum ** 0.5
+            idx += 1
 
 
 cpdef vector[pair[TY, TY]] buildRelativeNeighborhoodGraph(DTYPE_t[:] dist_mat_triu, TY n):
